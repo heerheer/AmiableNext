@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmiableNext", "AmiableNext\AmiableNext.csproj", "{EA33CE5C-D937-4F75-9F00-396276ECE842}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmiableNext.SDK", "AmiableNext.SDK\AmiableNext.SDK.csproj", "{C03D7F1B-48D8-490C-ABFF-E9565C61DD11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{EA33CE5C-D937-4F75-9F00-396276ECE842}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA33CE5C-D937-4F75-9F00-396276ECE842}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA33CE5C-D937-4F75-9F00-396276ECE842}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C03D7F1B-48D8-490C-ABFF-E9565C61DD11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C03D7F1B-48D8-490C-ABFF-E9565C61DD11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C03D7F1B-48D8-490C-ABFF-E9565C61DD11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C03D7F1B-48D8-490C-ABFF-E9565C61DD11}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

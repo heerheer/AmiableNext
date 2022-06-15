@@ -18,6 +18,9 @@ public class ConsoleLogUtil<T>
         => Log(content, 3);
 
 
+    public void Duang(string content) => Log(content, 4);
+
+
     public void Log(string content, int level)
     {
         Console.ForegroundColor = level switch
@@ -25,6 +28,7 @@ public class ConsoleLogUtil<T>
             1 => ConsoleColor.White,
             2 => ConsoleColor.Yellow,
             3 => ConsoleColor.Red,
+            4 => ConsoleColor.Cyan,
             _ => ConsoleColor.DarkGray
         };
         Console.WriteLine(content);
