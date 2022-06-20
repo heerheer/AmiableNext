@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AmiableNext.SDK;
 using AmiableNext.SDK.Enums;
@@ -13,37 +14,29 @@ namespace AmiableNext.Controllers;
 [Route("[controller]")]
 public class MyqqMsgController : ControllerBase
 {
-    private readonly ConsoleLogUtil<MyqqMsgController> _logger;
+    private readonly ILogger<MyqqMsgController> _logger;
 
-    public MyqqMsgController()
+    public MyqqMsgController(ILogger<MyqqMsgController> logger)
     {
-        _logger = new();
+        _logger = logger;
     }
 
     [HttpPost]
-    public string OnMsg([FromBody] MyQqEventMsgContext context)
+    public string OnMsg([FromBody] JsonNode context)
     {
         EventHandleResult HandleResult = EventHandleResult.Continue;
+
 #if DEBUG
-        _logger.Info(context.ToString());
+        _logger.LogInformation("{ctx}", context.ToString());
 #endif
 
-        context.MQMsg = System.Web.HttpUtility.UrlDecode(context.MQMsg) ?? "";
+        context["MQ_Msg"] = System.Web.HttpUtility.UrlDecode(context["MQ_Msg"]!.ToString()) ?? "";
 
-        var ctx = new AmiableEventContext(Manager.NextApi);
-
-        foreach (var property in typeof(MyQqEventMsgContext).GetProperties())
-        {
-            if (property.CanRead && property.CanWrite)
-            {
-                property.SetValue(ctx, property.GetValue(context, null), null);
-            }
-        }
-
+        //var ctx = new AmiableEventContext(Manager.NextApi);
 
         //在这里，会分发事件
-        AmiableService.app.Invoke(context.MQType, ctx);
+        // AmiableService.app.Invoke(context.MQ_Type, ctx);
 
-        return $"{{\"status\":{(int)HandleResult}}}";
+         return $"{{\"status\":{(int)HandleResult}}}";
     }
 }

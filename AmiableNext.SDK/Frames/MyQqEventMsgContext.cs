@@ -34,3 +34,20 @@ public class MyQqEventMsgContext
 }
 // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
 
+public class WebHookEventContext
+{
+    public string? UserId { get; set;}
+    public string BotId { get; set; }
+
+    /// <summary>
+    /// From可能是GroupId，也可能是UserId
+    /// </summary>
+    public string FromId { get; set;}
+
+    public string Content { get; set;}
+
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this);
+    }
+}

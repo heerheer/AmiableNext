@@ -2,19 +2,53 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using AmiableNext.SDK;
+using AmiableNext.Utils;
 
 namespace AmiableNext;
 
-public class AmiableService : AppService
+// ReSharper disable once ClassNeverInstantiated.Global
+public class AmiableService : AppService, IHostedService
 {
-    public static AppService app = new();
+    public AppService app = new();
 
-    public static void Init()
+    public AmiableNextApi NextApi;
+
+    private readonly ILogger<AmiableService> _logger;
+    private readonly IConfiguration _config;
+
+    public AmiableService(ILogger<AmiableService> logger, IHostApplicationLifetime appLifetime, IConfiguration config)
+    {
+        this._logger = logger;
+        _config = config;
+        appLifetime.ApplicationStarted.Register(Init);
+    }
+
+    public void Init()
     {
         app.Init();
+        _logger.LogInformation("Amiable Next 载入事件Instance中...");
         app.RegEvent<DemoPrivateMsg>("样例私聊事件");
         app.RegEvent<DemoPrivateMsg2>("样例私聊事件2");
         app.RegEvent<DemoGroupMsg2>("样例群聊事件2");
+        _logger.LogInformation("Amiable Next 载入事件完成");
+
+        var mode = _config.GetValue<string>("Mode");
+        var section = _config.GetSection(mode);
+        
+        _logger.LogInformation("当前模式:{mode}", mode);
+        NextApi = new AmiableNextApi(section["ApiUrl"], section["AuthToken"], mode);
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("{1}\n{2}\n{3}", "Powered By Myqq & Myqq HTTP API!", "Myqq 官网地址 https://www.myqqx.net/",
+            "HTTP API插件下载地址 https://daen.lanzoux.com/iEVEk0599isf");
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }
 
@@ -36,7 +70,7 @@ public class DemoPrivateMsg2 : IBotEvent
     {
         if (Regex.IsMatch(ctx.Content, @"我是谁[?.]?"))
         {
-            ctx.PrivateReply($"你是:{await ctx.Api.GetNickAsync(ctx.MQRobot, ctx.AuthorId)}");
+            ctx.PrivateReply($"你是:{await ctx.Api.GetNickAsync(ctx.BotId, ctx.AuthorId)}");
         }
     }
 }

@@ -1,24 +1,44 @@
 using System.Dynamic;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace AmiableNext.SDK;
 
 public class AmiableNextApi
 {
-    
     /*
      * 参考 https://www.myqqx.net/pages/0afae9/
      */
-    
+
     private HttpClient _httpClient;
     private readonly string _token;
+    private readonly string _mode;
 
-    public AmiableNextApi(string url, string token)
+    public AmiableNextApi(string url, string token, string mode)
     {
         _httpClient = new HttpClient();
         _httpClient.BaseAddress = new Uri(url);
         _token = token;
+        _mode = mode;
+
+        if (mode == "Mirai_HTTP_HOOK")
+        {
+            Verify();
+        }
+    }
+
+    private async void Verify()
+    {
+        var resp = await SendMiraiReq("/verify", new
+        {
+            verifyKey = _token
+        });
+
+        if (resp != null)
+        {
+            Console.WriteLine(resp["code"]);
+        }
     }
 
     /// <summary>
@@ -98,11 +118,37 @@ public class AmiableNextApi
             throw new("group与qq参数异常");
         }
 
-        var body = CreateBody("Api_SendMsg");
-        body.SetParams(bot, type, group, qq, content);
+        if (_mode == "Mirai_HTTP_HOOK")
+        {
+            if (type == 1)
+            {
+                SendMiraiReq("/sendFriendMessage", new
+                {
+                    sessionKey = _token,
+                    target = qq,
+                    messageChain = String2Mirai(content)
+                });
+            }
 
-        //发送请求
-        SendApiReq(body);
+            if (type == 2)
+            {
+
+                SendMiraiReq("/sendGroupMessage", new
+                {
+                    sessionKey = "",
+                    target = group,
+                    messageChain = String2Mirai(content)
+                });
+            }
+        }
+
+        if (_mode == "MyQQ_HTTP_API")
+        {
+            var body = CreateBody("Api_SendMsg");
+            body.SetParams(bot, type, group, qq, content);
+            //发送请求
+            SendApiReq(body);
+        }
     }
 
     private async Task<MyqqApiResult?> SendApiReq(ApiBody body)
@@ -110,6 +156,16 @@ public class AmiableNextApi
         var content = new StringContent(JsonSerializer.Serialize(body));
         return JsonSerializer.Deserialize<MyqqApiResult>(await (await _httpClient.PostAsync("", content)).Content
             .ReadAsStringAsync());
+    }
+
+    private async Task<JsonNode?> SendMiraiReq(string api, dynamic body)
+    {
+        Console.WriteLine("send");
+        var content = new StringContent(JsonSerializer.Serialize(body));
+        var resp = JsonSerializer.Deserialize<JsonNode>(await (await _httpClient.PostAsync(api, content)).Content
+            .ReadAsStringAsync());
+        Console.WriteLine(resp.ToString());
+        return resp;
     }
 
     /// <summary>
@@ -156,5 +212,17 @@ public class AmiableNextApi
         [JsonPropertyName("msg")] public string Msg { get; set; }
 
         [JsonPropertyName("data")] public MyqqApiResultData Data { get; set; }
+    }
+
+    IEnumerable<object> String2Mirai(string content)
+    {
+        return new[]
+        {
+            new
+            {
+                type = "Plain",
+                text = content
+            }
+        };
     }
 }

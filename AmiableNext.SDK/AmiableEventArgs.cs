@@ -7,7 +7,7 @@ namespace AmiableNext.SDK
     /// <summary>
     /// 最基础的事件参数集 遵循OneBot标准
     /// </summary>
-    public class AmiableEventContext : MyQqEventMsgContext
+    public class AmiableEventContext : WebHookEventContext
     {
         public AmiableEventContext(AmiableNextApi api)
         {
@@ -15,19 +15,15 @@ namespace AmiableNext.SDK
         }
 
         public string AuthorId =>
-            MQFromQQ;
-
-        public string Content =>
-            MQMsg;
+            UserId;
 
         public string GroupId =>
-            MQFromID;
+            FromId;
 
         public EventHandleResult HandleResult { get; set; } = EventHandleResult.Neglect;
 
         public AmiableNextApi Api;
     }
-
 
 
     public static class MessageApiExtension
@@ -38,15 +34,16 @@ namespace AmiableNext.SDK
         /// <param name="content"></param>
         public static void PrivateReply(this AmiableEventContext ctx, string content)
         {
-            ctx.Api.SendPrivateMsg(ctx.MQRobot, ctx.MQFromQQ, content);
+            ctx.Api.SendPrivateMsg(ctx.BotId, ctx.GroupId, content);
         }
+
         /// <summary>
         /// 群聊回复
         /// </summary>
         /// <param name="content"></param>
         public static void GroupReply(this AmiableEventContext ctx, string content)
         {
-            ctx.Api.SendGroupMsg(ctx.MQRobot, ctx.GroupId, content);
+            ctx.Api.SendGroupMsg(ctx.BotId, ctx.GroupId, content);
         }
     }
 }

@@ -13,6 +13,7 @@ public class AppService
     public void RegEvent<T>(string key = "") where T : IBotEvent
     {
         _events.Add(Activator.CreateInstance<T>());
+        
 #if DEBUG
         Console.WriteLine(typeof(T).Name + "已载入");
 #endif
