@@ -8,6 +8,8 @@ using AmiableNext.Utils;
 using Microsoft.AspNetCore.Http.Json;
 
 
+var list = AmiableNextApi.String2Mirai("1111111[@123][pic=2333]23232[@22333]").ToList();
+Console.WriteLine(JsonSerializer.Serialize(list));
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -30,12 +32,8 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-app.Run();
 
-public static class Manager
-{
-}
+app.Logger.LogWarning("AmiableNext目前依然处于开发中...可能会在后续更新出现破坏性代码变动!");
+app.Run();

@@ -73,15 +73,15 @@ public class MiraiEventController : ControllerBase
         {
             if (GetGroup() != "906831921")
             {
+                Console.WriteLine("re");
                 return;
             }
         }
 
         EventHandleResult HandleResult = EventHandleResult.Continue;
+        
+        _logger.LogInformation("{ori}", originContext.ToString());
 
-#if DEBUG
-        //_logger.LogInformation("{ori}", originContext);
-#endif
 
         var ctx = new AmiableEventContext(_amiable.NextApi)
         {

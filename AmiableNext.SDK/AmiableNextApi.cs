@@ -2,6 +2,9 @@ using System.Dynamic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using AmiableNext.SDK.Attributes;
+using AmiableNext.SDK.Enums;
 
 namespace AmiableNext.SDK;
 
@@ -22,22 +25,25 @@ public class AmiableNextApi
         _token = token;
         _mode = mode;
 
-        if (mode == "Mirai_HTTP_HOOK")
-        {
-            Verify();
-        }
+        Verify();
     }
 
+    //验证HTTPAPI
     private async void Verify()
     {
-        var resp = await SendMiraiReq("/verify", new
+        if (_mode == "Mirai_HTTP_HOOK")
         {
-            verifyKey = _token
-        });
-
-        if (resp != null)
-        {
-            Console.WriteLine(resp["code"]);
+            var resp = await SendMiraiReq("/verify", new
+            {
+                verifyKey = _token
+            });
+            if (resp != null)
+            {
+                if (resp["code"].ToString() != "0")
+                {
+                    throw new Exception("verify失败...");
+                }
+            }
         }
     }
 
@@ -53,17 +59,22 @@ public class AmiableNextApi
     }
 
     /// <summary>
-    /// 取QQ昵称
+    /// 取QQ昵称 仅MyqqHttpApi模式可用
     /// </summary>
     /// <param name="bot"></param>
     /// <param name="qq"></param>
     /// <returns></returns>
     public async Task<string> GetNickAsync(string bot, string qq)
     {
-        var body = CreateBody("Api_GetNick");
-        body.SetParams(bot, qq);
-        var result = await SendApiReq(body);
-        return result.Data.Ret;
+        if (_mode == ApiModes.MyqqHttpApi)
+        {
+            var body = CreateMyqqReqBody("Api_GetNick");
+            body.SetParams(bot, qq);
+            var result = await SendMyqqApiReq(body);
+            return result.Data.Ret;
+        }
+
+        throw new("不支持的API Mode");
     }
 
     /// <summary>
@@ -74,10 +85,15 @@ public class AmiableNextApi
     /// <returns></returns>
     public async Task<String> GetBirthdayAsync(string bot, string qq)
     {
-        var body = CreateBody("Api_GetNick");
-        body.SetParams(bot, qq);
-        var result = await SendApiReq(body);
-        return result.Data.Ret;
+        if (_mode == ApiModes.MyqqHttpApi)
+        {
+            var body = CreateMyqqReqBody("Api_GetNick");
+            body.SetParams(bot, qq);
+            var result = await SendMyqqApiReq(body);
+            return result.Data.Ret;
+        }
+
+        throw new("不支持的API Mode");
     }
 
     /// <summary>
@@ -88,10 +104,15 @@ public class AmiableNextApi
     /// <returns></returns>
     public async Task<string> GetGroupCardAsync(string bot, string qq)
     {
-        var body = CreateBody("Api_GetGroupCard");
-        body.SetParams(bot, qq);
-        var result = await SendApiReq(body);
-        return result.Data.Ret;
+        if (_mode == ApiModes.MyqqHttpApi)
+        {
+            var body = CreateMyqqReqBody("Api_GetGroupCard");
+            body.SetParams(bot, qq);
+            var result = await SendMyqqApiReq(body);
+            return result.Data.Ret;
+        }
+
+        throw new("不支持的API Mode");
     }
 
 
@@ -118,7 +139,7 @@ public class AmiableNextApi
             throw new("group与qq参数异常");
         }
 
-        if (_mode == "Mirai_HTTP_HOOK")
+        if (_mode == ApiModes.MiraiHttpHook)
         {
             if (type == 1)
             {
@@ -126,38 +147,39 @@ public class AmiableNextApi
                 {
                     sessionKey = _token,
                     target = qq,
-                    messageChain = String2Mirai(content)
+                    messageChain = String2Mirai(content).ToList()
                 });
             }
 
             if (type == 2)
             {
-
                 SendMiraiReq("/sendGroupMessage", new
                 {
                     sessionKey = "",
                     target = group,
-                    messageChain = String2Mirai(content)
+                    messageChain = String2Mirai(content).ToList()
                 });
             }
         }
 
-        if (_mode == "MyQQ_HTTP_API")
+        if (_mode == ApiModes.MyqqHttpApi)
         {
-            var body = CreateBody("Api_SendMsg");
+            var body = CreateMyqqReqBody("Api_SendMsg");
             body.SetParams(bot, type, group, qq, content);
             //发送请求
-            SendApiReq(body);
+            SendMyqqApiReq(body);
         }
     }
 
-    private async Task<MyqqApiResult?> SendApiReq(ApiBody body)
+    //MyqqApi发送
+    private async Task<MyqqApiResult?> SendMyqqApiReq(ApiBody body)
     {
         var content = new StringContent(JsonSerializer.Serialize(body));
         return JsonSerializer.Deserialize<MyqqApiResult>(await (await _httpClient.PostAsync("", content)).Content
             .ReadAsStringAsync());
     }
 
+    //帮助构建mirai-http-api-body，并发送请求
     private async Task<JsonNode?> SendMiraiReq(string api, dynamic body)
     {
         Console.WriteLine("send");
@@ -169,11 +191,11 @@ public class AmiableNextApi
     }
 
     /// <summary>
-    /// 创建一个请求体
+    /// 创建一个Myqq请求体
     /// </summary>
     /// <param name="function"></param>
     /// <returns></returns>
-    private ApiBody CreateBody(string function)
+    private ApiBody CreateMyqqReqBody(string function)
     {
         return new ApiBody() { Function = function, Token = _token };
     }
@@ -214,15 +236,51 @@ public class AmiableNextApi
         [JsonPropertyName("data")] public MyqqApiResultData Data { get; set; }
     }
 
-    IEnumerable<object> String2Mirai(string content)
+    /// <summary>
+    /// 将通用协议文本转化为Mirai消息链
+    /// </summary>
+    /// <param name="content"></param>
+    /// <returns></returns>
+    public static IEnumerable<object> String2Mirai(string content)
     {
-        return new[]
+        var split = Regex.Split(content, @"(\[.*?\])");
+        foreach (var x in split.ToList())
         {
-            new
+            if (string.IsNullOrEmpty(x))
+                continue;
+
+            if (Regex.IsMatch(x, @"\[@(.*)?\]"))
+            {
+                var match = Regex.Match(x, @"\[@(.*)?\]");
+                yield return new
+                {
+                    type = "At",
+                    target = match.Groups[1].Value
+                };
+                continue;
+            }
+
+            if (Regex.IsMatch(x, @"\[(.*)=(.*)?\]"))
+            {
+                var match = Regex.Match(x, @"\[(.*)=(.*)?\]");
+                yield return new
+                {
+                    type = match.Groups[1].Value switch
+                    {
+                        "pic" => "Image",
+                        "emoji" => "Face",
+                        _ => "unknown"
+                    },
+                    target = match.Groups[2].Value
+                };
+                continue;
+            }
+
+            yield return new
             {
                 type = "Plain",
-                text = content
-            }
-        };
+                text = x
+            };
+        }
     }
 }

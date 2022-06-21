@@ -34,14 +34,17 @@ public class AmiableService : AppService, IHostedService
 
         var mode = _config.GetValue<string>("Mode");
         var section = _config.GetSection(mode);
-        
+
         _logger.LogInformation("当前模式:{mode}", mode);
         NextApi = new AmiableNextApi(section["ApiUrl"], section["AuthToken"], mode);
+        _logger.LogInformation("当前模式:{mode}", mode);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("{1}\n{2}\n{3}", "Powered By Myqq & Myqq HTTP API!", "Myqq 官网地址 https://www.myqqx.net/",
+        _logger.LogInformation("\n{1}\n{2}\n{3}",
+            "Powered By Myqq & Myqq HTTP API!",
+            "Myqq 官网地址 https://www.myqqx.net/",
             "HTTP API插件下载地址 https://daen.lanzoux.com/iEVEk0599isf");
         return Task.CompletedTask;
     }
@@ -86,6 +89,7 @@ public class DemoGroupMsg2 : IBotEvent
             var sb = new StringBuilder();
             sb.AppendLine("这是AmiableNext-全新的Amiable哦");
             sb.AppendLine("github: heerheer/AmiableNext");
+            sb.AppendLine($@"[@{ctx.AuthorId}]");
 
             ctx.GroupReply(sb.ToString());
         }
